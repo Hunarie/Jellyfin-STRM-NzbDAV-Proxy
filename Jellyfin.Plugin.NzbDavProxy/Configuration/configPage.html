@@ -11,6 +11,7 @@
     <div data-role="content">
         <div class="content-primary">
             <form id="NzbDavProxyConfigForm">
+
                 <div class="inputContainer">
                     <label class="inputLabel inputLabelUnfocused" for="NzbDavBaseUrl">
                         NZBDav base URL
@@ -32,6 +33,57 @@
                            name="UpstreamTimeoutSeconds" min="5" max="600" required />
                     <div class="fieldDescription">
                         How long to wait for NZBDav to start responding before failing.
+                        This bounds the connection only and does not limit streaming length.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="NzbDavUsername">
+                        NZBDav username (optional)
+                    </label>
+                    <input is="emby-input" type="text" id="NzbDavUsername" name="NzbDavUsername"
+                           autocomplete="off" />
+                    <div class="fieldDescription">
+                        Only needed if NZBDav (or a reverse proxy in front of it) requires
+                        HTTP Basic authentication. Leave blank otherwise.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="NzbDavPassword">
+                        NZBDav password (optional)
+                    </label>
+                    <input is="emby-input" type="password" id="NzbDavPassword" name="NzbDavPassword"
+                           autocomplete="new-password" />
+                    <div class="fieldDescription">
+                        Stored in the plugin configuration file. Leave blank if NZBDav is
+                        open on your internal network.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="AllowedPathPrefixes">
+                        Allowed path prefixes (optional)
+                    </label>
+                    <input is="emby-input" type="text" id="AllowedPathPrefixes" name="AllowedPathPrefixes"
+                           placeholder="content/,dav/" />
+                    <div class="fieldDescription">
+                        Comma-separated list of path prefixes the proxy is allowed to fetch.
+                        When set, any request whose path does not start with one of these is
+                        rejected. Leave blank to allow any path beneath the base URL.
+                        Path traversal ("..") is always blocked.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="EnableVerboseLogging"
+                               name="EnableVerboseLogging" />
+                        <span>Enable verbose logging</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Logs the upstream URL and response status for every request. Helpful
+                        while setting things up; turn off for normal use.
                     </div>
                 </div>
 
@@ -53,6 +105,10 @@
                 ApiClient.getPluginConfiguration(NzbDavProxyConfig.pluginUniqueId).then(function (config) {
                     document.querySelector('#NzbDavBaseUrl').value = config.NzbDavBaseUrl || '';
                     document.querySelector('#UpstreamTimeoutSeconds').value = config.UpstreamTimeoutSeconds || 120;
+                    document.querySelector('#NzbDavUsername').value = config.NzbDavUsername || '';
+                    document.querySelector('#NzbDavPassword').value = config.NzbDavPassword || '';
+                    document.querySelector('#AllowedPathPrefixes').value = config.AllowedPathPrefixes || '';
+                    document.querySelector('#EnableVerboseLogging').checked = config.EnableVerboseLogging || false;
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -65,6 +121,10 @@
                     config.NzbDavBaseUrl = document.querySelector('#NzbDavBaseUrl').value;
                     config.UpstreamTimeoutSeconds = parseInt(
                         document.querySelector('#UpstreamTimeoutSeconds').value, 10);
+                    config.NzbDavUsername = document.querySelector('#NzbDavUsername').value;
+                    config.NzbDavPassword = document.querySelector('#NzbDavPassword').value;
+                    config.AllowedPathPrefixes = document.querySelector('#AllowedPathPrefixes').value;
+                    config.EnableVerboseLogging = document.querySelector('#EnableVerboseLogging').checked;
                     ApiClient.updatePluginConfiguration(NzbDavProxyConfig.pluginUniqueId, config)
                         .then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);

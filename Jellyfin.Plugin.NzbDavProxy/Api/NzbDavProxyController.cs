@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net;
@@ -102,18 +103,51 @@ public class NzbDavProxyController : ControllerBase
             return BadRequest("No upstream path supplied.");
         }
 
+        var relativePath = path.TrimStart('/');
+
+        // Never allow path traversal to escape the configured base URL.
+        if (relativePath.Contains("..", StringComparison.Ordinal))
+        {
+            _logger.LogWarning("Rejected NZBDav proxy request with traversal in path: {Path}", path);
+            return BadRequest("Invalid path.");
+        }
+
+        // Optional whitelist: if configured, the path must start with an allowed prefix.
+        if (!IsPathAllowed(relativePath, config.AllowedPathPrefixes))
+        {
+            _logger.LogWarning("Rejected NZBDav proxy request outside allowed prefixes: {Path}", path);
+            return StatusCode(StatusCodes.Status403Forbidden, "Path is not allowed.");
+        }
+
         // Rebuild the original NZBDav URL: <base>/<path>[?<preserved query>].
         // We preserve any query string the original URL carried, minus the
         // api_key/ApiKey we use for Jellyfin auth (it has no meaning to NZBDav).
         var baseUrl = config.NzbDavBaseUrl.TrimEnd('/');
         var query = BuildUpstreamQuery();
-        var targetUrl = $"{baseUrl}/{path.TrimStart('/')}{query}";
+        var targetUrl = $"{baseUrl}/{relativePath}{query}";
+
+        if (config.EnableVerboseLogging)
+        {
+            _logger.LogInformation(
+                "NZBDav proxy -> {Method} {TargetUrl} (range: {Range})",
+                Request.Method,
+                targetUrl,
+                Request.Headers.TryGetValue(HeaderNames.Range, out var rangeLog) ? rangeLog.ToString() : "none");
+        }
 
         var client = _httpClientFactory.CreateClient(NamedClient.Default);
 
         using var upstreamRequest = new HttpRequestMessage(
             HttpMethods.IsHead(Request.Method) ? HttpMethod.Head : HttpMethod.Get,
             targetUrl);
+
+        // Forward optional HTTP Basic credentials to NZBDav / its reverse proxy.
+        if (!string.IsNullOrEmpty(config.NzbDavUsername))
+        {
+            var basic = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{config.NzbDavUsername}:{config.NzbDavPassword}"));
+            upstreamRequest.Headers.TryAddWithoutValidation(HeaderNames.Authorization, "Basic " + basic);
+        }
 
         // Forward Range / conditional headers so NZBDav can return 206 partial content.
         foreach (var header in _passthroughRequestHeaders)
@@ -124,6 +158,14 @@ public class NzbDavProxyController : ControllerBase
             }
         }
 
+        // The timeout bounds only the time to receive response headers from NZBDav,
+        // not the streaming of the body (which is as long as the video). We link a
+        // timed token to the client's token for the SendAsync call, then stream the
+        // body using the plain client token so playback is never cut off.
+        var timeoutSeconds = config.UpstreamTimeoutSeconds > 0 ? config.UpstreamTimeoutSeconds : 120;
+        using var headersTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        headersTimeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
         HttpResponseMessage upstreamResponse;
         try
         {
@@ -131,13 +173,20 @@ public class NzbDavProxyController : ControllerBase
             // WITHOUT buffering the whole video into memory. This is the key to
             // streaming arbitrarily large files at constant, low memory usage.
             upstreamResponse = await client
-                .SendAsync(upstreamRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .SendAsync(upstreamRequest, HttpCompletionOption.ResponseHeadersRead, headersTimeoutCts.Token)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Client (Infuse) went away mid-request; nothing to do.
             return new EmptyResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // Our timeout fired (the client is still connected).
+            _logger.LogWarning(
+                "NZBDav did not respond within {Timeout}s for {TargetUrl}", timeoutSeconds, targetUrl);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "NZBDav did not respond in time.");
         }
         catch (HttpRequestException ex)
         {
@@ -147,6 +196,14 @@ public class NzbDavProxyController : ControllerBase
 
         try
         {
+            if (config.EnableVerboseLogging)
+            {
+                _logger.LogInformation(
+                    "NZBDav proxy <- {StatusCode} for {TargetUrl}",
+                    (int)upstreamResponse.StatusCode,
+                    targetUrl);
+            }
+
             if (upstreamResponse.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("NZBDav returned 404 for {TargetUrl}", targetUrl);
@@ -190,6 +247,29 @@ public class NzbDavProxyController : ControllerBase
         {
             upstreamResponse.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Returns true if the (slash-trimmed) path is permitted by the configured
+    /// comma-separated prefix whitelist. An empty whitelist permits everything.
+    /// </summary>
+    private static bool IsPathAllowed(string relativePath, string? allowedPrefixes)
+    {
+        if (string.IsNullOrWhiteSpace(allowedPrefixes))
+        {
+            return true;
+        }
+
+        foreach (var raw in allowedPrefixes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var prefix = raw.TrimStart('/');
+            if (relativePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
