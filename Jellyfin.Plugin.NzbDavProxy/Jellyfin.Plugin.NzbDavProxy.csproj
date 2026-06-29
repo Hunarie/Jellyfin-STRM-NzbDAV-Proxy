@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <RootNamespace>Jellyfin.Plugin.NzbDavProxy</RootNamespace>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -16,11 +16,12 @@
   <!--
     Jellyfin.Controller pulls in the full plugin/controller surface (BasePlugin,
     IHasWebPages, the ASP.NET controller base classes, the authorization policies,
-    IHttpClientFactory registration, etc). Pin it to a version compatible with the
-    Jellyfin server you are targeting. 10.9.x ships against this assembly version.
+    IHttpClientFactory registration, etc). Pinned to 10.11.0 (the floor of the
+    10.11 series, which targets net9.0) so the plugin loads on any Jellyfin
+    10.11.x server.
   -->
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.9.11" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
   </ItemGroup>
 
   <!-- Embed the configuration page so it shows up in the Dashboard -> Plugins UI. -->
