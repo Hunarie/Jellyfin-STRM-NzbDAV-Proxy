@@ -43,8 +43,9 @@ if [ -z "$JELLYFIN_API_KEY" ]; then
     exit 2
 fi
 
-# Nothing to do if it no longer references the internal origin (already rewritten).
+# Nothing to do if the origin is absent, or if api_key is already present.
 grep -q "$NZBDAV_ORIGIN" "$file" 2>/dev/null || exit 0
+grep -q "api_key=" "$file" 2>/dev/null && exit 0
 
 new="$(
     awk -v origin="$NZBDAV_ORIGIN" \

@@ -12,7 +12,16 @@
 # Your public Jellyfin base URL (no trailing slash).
 JELLYFIN_URL="https://tv.jaydinleeman.com"
 
-# The internal NZBDav origin currently embedded in the .strm files.
+# The origin currently embedded in the .strm files — the string the rewrite
+# script searches for. Two common scenarios:
+#
+#   Original setup (NZBDav writes its internal hostname into .strm files):
+#     NZBDAV_ORIGIN="http://nzbdav:3000"
+#
+#   If you pointed NZBDav's base URL at the proxy so it writes proxy URLs
+#   directly (no api_key), set this to the proxy prefix instead, so the
+#   script detects those files and appends &api_key= to them:
+#     NZBDAV_ORIGIN="https://tv.jaydinleeman.com/NZBDavProxy/Stream"
 NZBDAV_ORIGIN="http://nzbdav:3000"
 
 # A Jellyfin API key (Dashboard -> Advanced -> API Keys). Treat as a secret.
