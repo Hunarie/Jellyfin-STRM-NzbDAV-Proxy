@@ -25,7 +25,7 @@ namespace Jellyfin.Plugin.NzbDavProxy.Api;
 /// pipes the bytes straight back to the client.
 /// </summary>
 [ApiController]
-[Authorize(Policy = "DefaultAuthorization")]
+[Authorize]
 [Route("NZBDavProxy")]
 public class NzbDavProxyController : ControllerBase
 {
