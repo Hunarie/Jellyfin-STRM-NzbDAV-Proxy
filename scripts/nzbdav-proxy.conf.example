@@ -1,0 +1,22 @@
+# NZBDav Proxy rewrite config
+# ---------------------------
+# Copy this to a persistent path and edit it, then point the scripts at it via
+# NZBDAV_PROXY_CONF (the scripts default to /boot/config/nzbdav-proxy.conf on
+# Unraid, which survives reboots).
+#
+#   cp scripts/nzbdav-proxy.conf.example /boot/config/nzbdav-proxy.conf
+#   nano /boot/config/nzbdav-proxy.conf
+#
+# This file is sourced by bash, so use KEY="value" with no spaces around '='.
+
+# Your public Jellyfin base URL (no trailing slash).
+JELLYFIN_URL="https://tv.jaydinleeman.com"
+
+# The internal NZBDav origin currently embedded in the .strm files.
+NZBDAV_ORIGIN="http://nzbdav:3000"
+
+# A Jellyfin API key (Dashboard -> Advanced -> API Keys). Treat as a secret.
+JELLYFIN_API_KEY="REPLACE_WITH_YOUR_JELLYFIN_API_KEY"
+
+# The media root the watcher should monitor (host path on Unraid).
+MEDIA_DIR="/mnt/user/media"
