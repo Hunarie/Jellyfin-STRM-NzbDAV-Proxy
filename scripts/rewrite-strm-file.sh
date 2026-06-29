@@ -14,7 +14,7 @@
 #
 # Config is read from environment variables, optionally seeded from a config
 # file (default /boot/config/nzbdav-proxy.conf on Unraid, override with
-# NZBDAV_PROXY_CONF). Required: JELLYFIN_API_KEY.
+# NZBDAV_PROXY_CONF).
 #
 # Usage:
 #   rewrite-strm-file.sh /path/to/Movie.strm
@@ -27,7 +27,6 @@ CONF="${NZBDAV_PROXY_CONF:-/boot/config/nzbdav-proxy.conf}"
 
 JELLYFIN_URL="${JELLYFIN_URL:-https://tv.jaydinleeman.com}"
 NZBDAV_ORIGIN="${NZBDAV_ORIGIN:-http://nzbdav:3000}"
-JELLYFIN_API_KEY="${JELLYFIN_API_KEY:-}"
 PROXY_PREFIX="${JELLYFIN_URL%/}/NZBDavProxy/Stream"
 
 file="${1:-}"
@@ -38,27 +37,18 @@ case "$file" in
 esac
 [ -f "$file" ] || { echo "rewrite-strm-file: no such file: $file" >&2; exit 2; }
 
-if [ -z "$JELLYFIN_API_KEY" ]; then
-    echo "rewrite-strm-file: JELLYFIN_API_KEY is not set (env or $CONF)" >&2
-    exit 2
-fi
-
-# Nothing to do if the origin is absent, or if api_key is already present.
+# Nothing to do if the origin is absent (already rewritten or unrelated file).
 grep -q "$NZBDAV_ORIGIN" "$file" 2>/dev/null || exit 0
-grep -q "api_key=" "$file" 2>/dev/null && exit 0
 
 new="$(
     awk -v origin="$NZBDAV_ORIGIN" \
-        -v prefix="$PROXY_PREFIX" \
-        -v apikey="$JELLYFIN_API_KEY" '
+        -v prefix="$PROXY_PREFIX" '
     {
         line = $0
         idx = index(line, origin)
         if (idx > 0) {
             path = substr(line, idx + length(origin))
-            # If the original URL already had a query string, append with &.
-            sep = (index(path, "?") > 0) ? "&" : "?"
-            line = substr(line, 1, idx - 1) prefix path sep "api_key=" apikey
+            line = substr(line, 1, idx - 1) prefix path
         }
         print line
     }' "$file"
