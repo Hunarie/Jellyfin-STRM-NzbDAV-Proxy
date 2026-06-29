@@ -17,15 +17,20 @@ namespace Jellyfin.Plugin.NzbDavProxy.Api;
 /// <summary>
 /// API controller that bridges Jellyfin to an internal NZBDav instance.
 ///
-/// A rewritten .strm file points at:
-///     https://&lt;your-jellyfin&gt;/NZBDavProxy/Stream/&lt;original-nzbdav-path&gt;?api_key=&lt;token&gt;
+/// A .strm file points at:
+///     https://&lt;your-jellyfin&gt;/NZBDavProxy/Stream/&lt;original-nzbdav-path&gt;
 ///
 /// This controller reconstructs the original NZBDav URL from the configured base
 /// URL plus the captured path, fetches it from *inside* the Docker network, and
 /// pipes the bytes straight back to the client.
+///
+/// The endpoint is intentionally anonymous: access is gated by NZBDav's per-file
+/// downloadKey (a 256-bit random secret embedded in the URL), which is stronger
+/// and less broadly-scoped than a Jellyfin API key. A leaked URL exposes one file,
+/// not the full Jellyfin API.
 /// </summary>
 [ApiController]
-[Authorize]
+[AllowAnonymous]
 [Route("NZBDavProxy")]
 public class NzbDavProxyController : ControllerBase
 {
