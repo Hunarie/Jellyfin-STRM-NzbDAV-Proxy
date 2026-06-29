@@ -1,12 +1,21 @@
 [
-    {
-        "guid": "19d56267-475a-47a4-b9f3-857d07630198",
-        "name": "NZBDav Proxy",
-        "description": "Proxies .strm media stored on an internal NZBDav instance through Jellyfin, so remote players such as Infuse can stream and seek without exposing NZBDav to the public internet.",
-        "overview": "Stream internal NZBDav .strm media through Jellyfin for remote players.",
-        "owner": "Hunarie",
-        "category": "General",
-        "imageUrl": "",
-        "versions": []
-    }
+  {
+    "guid": "19d56267-475a-47a4-b9f3-857d07630198",
+    "name": "NZBDav Proxy",
+    "description": "Proxies .strm media stored on an internal NZBDav instance through Jellyfin, so remote players such as Infuse can stream and seek without exposing NZBDav to the public internet.",
+    "overview": "Stream internal NZBDav .strm media through Jellyfin for remote players.",
+    "owner": "Hunarie",
+    "category": "General",
+    "imageUrl": "",
+    "versions": [
+      {
+        "version": "2.0.1.0",
+        "changelog": "Release 2.0.1.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hunarie/Jellyfin-STRM-NzbDAV-Proxy/releases/download/v2.0.1/nzbdav-proxy_2.0.1.0.zip",
+        "checksum": "a7615c8b80d55fdf77a4e02eee7cebdb",
+        "timestamp": "2026-06-29T15:31:01Z"
+      }
+    ]
+  }
 ]
