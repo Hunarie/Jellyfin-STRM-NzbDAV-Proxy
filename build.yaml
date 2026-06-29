@@ -1,7 +1,7 @@
 ---
 name: "NZBDav Proxy"
 guid: "19d56267-475a-47a4-b9f3-857d07630198"
-version: "2.0.0.0"
+version: "2.0.1.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "hunarie"
@@ -15,4 +15,5 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.NzbDavProxy.dll"
 changelog: >
+  2.0.1.0 - Fix authorization for Jellyfin 10.11 (use default [Authorize]).
   2.0.0.0 - Rebuilt for Jellyfin 10.11 (.NET 9).
