@@ -1,0 +1,112 @@
+name: Release plugin
+
+# Builds the plugin, publishes a GitHub Release containing the zipped DLL, and
+# updates manifest.json so the plugin is installable from Jellyfin's plugin
+# catalog (Dashboard -> Plugins -> Repositories).
+#
+# Run it from the Actions tab ("Run workflow") and enter a version such as
+# 1.0.0, OR push a tag like v1.0.0. Always run it against the branch that holds
+# manifest.json (your default branch), because the updated manifest is committed
+# back to whatever branch the workflow checked out.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 1.0.0"
+        required: true
+        default: "1.0.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Resolve version numbers
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW="${{ github.event.inputs.version }}"
+          else
+            RAW="${GITHUB_REF_NAME#v}"
+          fi
+          RAW="${RAW#v}"
+          IFS='.' read -r a b c d <<< "$RAW"
+          : "${a:=1}"; : "${b:=0}"; : "${c:=0}"; : "${d:=0}"
+          echo "full=${a}.${b}.${c}.${d}" >> "$GITHUB_OUTPUT"   # Jellyfin wants 4-part
+          echo "tag=v${a}.${b}.${c}" >> "$GITHUB_OUTPUT"
+
+      - name: Build (Release)
+        run: |
+          dotnet build Jellyfin.Plugin.NzbDavProxy/Jellyfin.Plugin.NzbDavProxy.csproj \
+            -c Release \
+            /p:Version=${{ steps.ver.outputs.full }} \
+            /p:AssemblyVersion=${{ steps.ver.outputs.full }} \
+            /p:FileVersion=${{ steps.ver.outputs.full }}
+
+      - name: Package zip + checksum
+        id: pkg
+        run: |
+          mkdir -p artifacts
+          ZIP="nzbdav-proxy_${{ steps.ver.outputs.full }}.zip"
+          # Jellyfin extracts the zip's contents straight into the plugin folder,
+          # so the DLL must sit at the zip root (-j strips directory paths).
+          zip -j "artifacts/${ZIP}" \
+            Jellyfin.Plugin.NzbDavProxy/bin/Release/net8.0/Jellyfin.Plugin.NzbDavProxy.dll
+          MD5=$(md5sum "artifacts/${ZIP}" | awk '{print $1}')
+          echo "zip=${ZIP}" >> "$GITHUB_OUTPUT"
+          echo "md5=${MD5}" >> "$GITHUB_OUTPUT"
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          files: artifacts/${{ steps.pkg.outputs.zip }}
+
+      - name: Publish version to manifest.json (on default branch)
+        run: |
+          set -e
+          DEFAULT="${{ github.event.repository.default_branch }}"
+          # Always edit/commit the manifest on the default branch, so it works
+          # whether this run was triggered by a tag or by "Run workflow".
+          git fetch origin "$DEFAULT"
+          git checkout -B "$DEFAULT" "origin/$DEFAULT"
+
+          TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SRC="https://github.com/${{ github.repository }}/releases/download/${{ steps.ver.outputs.tag }}/${{ steps.pkg.outputs.zip }}"
+          jq \
+            --arg v   "${{ steps.ver.outputs.full }}" \
+            --arg abi "10.9.0.0" \
+            --arg src "$SRC" \
+            --arg md5 "${{ steps.pkg.outputs.md5 }}" \
+            --arg ts  "$TS" \
+            '(.[0].versions) |=
+               ([{version:$v, changelog:("Release "+$v), targetAbi:$abi, sourceUrl:$src, checksum:$md5, timestamp:$ts}]
+                + (map(select(.version != $v))))' \
+            manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+          cat manifest.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          if git diff --cached --quiet; then
+            echo "manifest.json unchanged"
+            exit 0
+          fi
+          git commit -m "Publish ${{ steps.ver.outputs.full }} to plugin manifest"
+          git push origin "$DEFAULT"
