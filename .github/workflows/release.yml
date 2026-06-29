@@ -80,9 +80,10 @@ jobs:
       - name: Publish version to manifest.json (on default branch)
         run: |
           set -e
-          DEFAULT="${{ github.event.repository.default_branch }}"
-          # Always edit/commit the manifest on the default branch, so it works
-          # whether this run was triggered by a tag or by "Run workflow".
+          # The manifest is canonically hosted on 'main'. Always edit/commit it
+          # there, so it works whether this run was triggered by a tag or by
+          # "Run workflow" from any branch.
+          DEFAULT="main"
           git fetch origin "$DEFAULT"
           git checkout -B "$DEFAULT" "origin/$DEFAULT"
 
