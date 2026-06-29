@@ -30,10 +30,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "9.0.x"
 
       - name: Resolve version numbers
         id: ver
@@ -65,7 +65,7 @@ jobs:
           # Jellyfin extracts the zip's contents straight into the plugin folder,
           # so the DLL must sit at the zip root (-j strips directory paths).
           zip -j "artifacts/${ZIP}" \
-            Jellyfin.Plugin.NzbDavProxy/bin/Release/net8.0/Jellyfin.Plugin.NzbDavProxy.dll
+            Jellyfin.Plugin.NzbDavProxy/bin/Release/net9.0/Jellyfin.Plugin.NzbDavProxy.dll
           MD5=$(md5sum "artifacts/${ZIP}" | awk '{print $1}')
           echo "zip=${ZIP}" >> "$GITHUB_OUTPUT"
           echo "md5=${MD5}" >> "$GITHUB_OUTPUT"
@@ -91,7 +91,7 @@ jobs:
           SRC="https://github.com/${{ github.repository }}/releases/download/${{ steps.ver.outputs.tag }}/${{ steps.pkg.outputs.zip }}"
           jq \
             --arg v   "${{ steps.ver.outputs.full }}" \
-            --arg abi "10.9.0.0" \
+            --arg abi "10.11.0.0" \
             --arg src "$SRC" \
             --arg md5 "${{ steps.pkg.outputs.md5 }}" \
             --arg ts  "$TS" \

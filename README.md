@@ -29,7 +29,7 @@ Infuse ──HTTPS──> Jellyfin (tv.jaydinleeman.com)
 
 | Requirement | Where |
 | --- | --- |
-| .NET 8 / Jellyfin 10.9+ architecture | `Jellyfin.Plugin.NzbDavProxy.csproj` targets `net8.0`, references `Jellyfin.Controller` 10.9.x |
+| .NET 9 / Jellyfin 10.11 architecture | `Jellyfin.Plugin.NzbDavProxy.csproj` targets `net9.0`, references `Jellyfin.Controller` 10.11.x |
 | No full-file buffering | Controller uses `HttpCompletionOption.ResponseHeadersRead` + `Stream.CopyToAsync` |
 | Seamless seek/scrub | Forwards the client's `Range`/`If-Range` headers to NZBDav and relays the `206 Partial Content` response verbatim (see note below) |
 | Secured with Jellyfin auth | Controller is decorated with `[Authorize(Policy = "DefaultAuthorization")]` |
@@ -62,7 +62,7 @@ equivalent skeleton if you want to start fresh.
 The official template is distributed as a `dotnet new` template:
 
 ```bash
-# Install the .NET 8 SDK first: https://dotnet.microsoft.com/download/dotnet/8.0
+# Install the .NET 9 SDK first: https://dotnet.microsoft.com/download/dotnet/9.0
 
 # Install Jellyfin's plugin template
 dotnet new install Jellyfin.Plugin.Template
@@ -76,7 +76,7 @@ That generates the same shape you see here:
 ```
 Jellyfin-STRM-NzbDAV-Proxy/
 ├── Jellyfin.Plugin.NzbDavProxy/
-│   ├── Jellyfin.Plugin.NzbDavProxy.csproj   # net8.0, references Jellyfin.Controller
+│   ├── Jellyfin.Plugin.NzbDavProxy.csproj   # net9.0, references Jellyfin.Controller
 │   ├── Plugin.cs                            # BasePlugin<PluginConfiguration>, IHasWebPages
 │   ├── Api/
 │   │   └── NzbDavProxyController.cs         # the /NZBDavProxy streaming endpoint
@@ -101,7 +101,7 @@ call it at startup.)
 
 ## 2. Build instructions
 
-### Option A — build locally with the .NET 8 SDK
+### Option A — build locally with the .NET 9 SDK
 
 ```bash
 cd Jellyfin-STRM-NzbDAV-Proxy
@@ -112,7 +112,7 @@ dotnet build Jellyfin.Plugin.NzbDavProxy/Jellyfin.Plugin.NzbDavProxy.csproj -c R
 The compiled plugin is at:
 
 ```
-Jellyfin.Plugin.NzbDavProxy/bin/Release/net8.0/Jellyfin.Plugin.NzbDavProxy.dll
+Jellyfin.Plugin.NzbDavProxy/bin/Release/net9.0/Jellyfin.Plugin.NzbDavProxy.dll
 ```
 
 ### Option B — produce a packaged ZIP with `jprm` (optional)
