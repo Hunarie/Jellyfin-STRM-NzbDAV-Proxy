@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+
+# jprm / packaging output
+artifacts/
+*.zip
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .strm backups produced by the rewrite script
+*.strm.bak

@@ -1,0 +1,18 @@
+---
+name: "NZBDav Proxy"
+guid: "19d56267-475a-47a4-b9f3-857d07630198"
+version: "1.0.0.0"
+targetAbi: "10.9.0.0"
+framework: "net8.0"
+owner: "hunarie"
+overview: "Proxy internal NZBDav .strm media through Jellyfin for remote players."
+description: >
+  Creates a /NZBDavProxy/ API endpoint inside Jellyfin that fetches media from an
+  internal NZBDav instance and streams it back to the client with byte-range
+  (seek) support. Lets remote players such as Infuse play NZBDav-backed .strm
+  files without exposing NZBDav to the internet, rclone, or a custom reverse proxy.
+category: "General"
+artifacts:
+  - "Jellyfin.Plugin.NzbDavProxy.dll"
+changelog: >
+  1.0.0.0 - Initial release.

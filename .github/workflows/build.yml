@@ -1,0 +1,32 @@
+name: Build plugin
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore Jellyfin.Plugin.NzbDavProxy/Jellyfin.Plugin.NzbDavProxy.csproj
+
+      - name: Build (Release)
+        run: dotnet build Jellyfin.Plugin.NzbDavProxy/Jellyfin.Plugin.NzbDavProxy.csproj -c Release --no-restore
+
+      - name: Upload plugin DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jellyfin.Plugin.NzbDavProxy
+          path: Jellyfin.Plugin.NzbDavProxy/bin/Release/net8.0/Jellyfin.Plugin.NzbDavProxy.dll
+          if-no-files-found: error
