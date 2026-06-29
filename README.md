@@ -200,6 +200,52 @@ find /path/to/media -name '*.strm.bak' -delete
 
 ---
 
+## 4b. Automate it for new downloads (post-processing hook)
+
+NZBDav writes a fresh `.strm` with the internal `nzbdav:3000` URL for every new
+download, so the rewrite needs to run on an ongoing basis. Two helper scripts
+handle this:
+
+- `scripts/rewrite-strm-file.sh <file>` — rewrites a single `.strm` in place.
+  Idempotent (skips already-rewritten files), writes atomically. This is the
+  hook handler.
+- `scripts/watch-strm.sh <media-dir>` — does an initial sweep of existing files,
+  then watches the tree and rewrites each new `.strm` the instant it appears
+  (via `inotifywait` if installed, otherwise a 15-second polling fallback).
+
+### Setup
+
+1. Create a persistent config (survives reboots on Unraid):
+
+   ```bash
+   cp scripts/nzbdav-proxy.conf.example /boot/config/nzbdav-proxy.conf
+   nano /boot/config/nzbdav-proxy.conf    # set JELLYFIN_API_KEY and MEDIA_DIR
+   ```
+
+2. Run the watcher as a background service. On Unraid, use the **User Scripts**
+   plugin: create a script with the body below and schedule it
+   **At Startup of Array**:
+
+   ```bash
+   #!/bin/bash
+   /path/to/repo/scripts/watch-strm.sh &
+   ```
+
+   (The watcher reads `MEDIA_DIR` and the rest from `/boot/config/nzbdav-proxy.conf`.)
+
+### Alternative hook points
+
+The same `rewrite-strm-file.sh` can be driven by your existing pipeline instead
+of the watcher:
+
+- **Sonarr/Radarr** → Settings → Connect → **Custom Script**, On Import / On
+  Upgrade. Point it at `rewrite-strm-file.sh` and pass the imported file path
+  (`$radarr_moviefile_path` / `$sonarr_episodefile_path`).
+- **Any NZBDav/SAB post-processing** that can run a command with the produced
+  file path.
+
+---
+
 ## 5. Verify
 
 Test the endpoint directly (replace the host, path, and key):
